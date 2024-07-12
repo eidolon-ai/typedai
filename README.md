@@ -22,7 +22,13 @@ is executed.
 ```python
 from typedai import TypedAI
 from typing import Literal
+from pydantic import BaseModel
 
+# response format can be described via pydantic model
+class MyResponseObject(BaseModel):
+    philosopher: str
+    meaning: str
+    bullshit_level: float = .5
 
 # tool(s) described entirely by function signature
 def meaning_of_life(philosopher: Literal["Douglas Adams"]) -> str:
@@ -38,6 +44,7 @@ completion = TypedAI().completions.create(
     model="gpt-3.5-turbo",
     messages=messages,
     tools=meaning_of_life,
+    response_format=MyResponseObject
 )
 choice = completion.choices[0]
 tool_call = choice.message.tool_calls[0]

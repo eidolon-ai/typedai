@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from functools import cached_property
-from typing import List, Any, Callable
+from typing import List, Any, Callable, Generic, TypeVar
 
 from openai.types.chat import (ChatCompletion,
                                ChatCompletionMessage,
@@ -11,19 +10,22 @@ from openai.types.chat import (ChatCompletion,
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk, ChoiceDelta, ChoiceDeltaToolCall
 
-
-class TypedChatCompletion(ChatCompletion):
-    choices: List[TypedChoice]
+T = TypeVar('T')
 
 
-class TypedChoice(Choice):
-    message: TypedChatCompletionMessage
+class TypedChatCompletion(ChatCompletion, Generic[T]):
+    choices: List[TypedChoice[T]]
+
+
+class TypedChoice(Choice, Generic[T]):
+    message: TypedChatCompletionMessage[T]
 
     def tool_messages(self) -> List[ChatCompletionToolMessageParam]:
         return [tc.tool_message() for tc in self.message.tool_calls]
 
 
-class TypedChatCompletionMessage(ChatCompletionMessage):
+class TypedChatCompletionMessage(ChatCompletionMessage, Generic[T]):
+    content: T
     tool_calls: List[TypedChatCompletionMessageToolCall]
 
 
