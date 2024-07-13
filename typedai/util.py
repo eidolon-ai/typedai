@@ -5,9 +5,9 @@ from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk
 from openai.types.shared_params import FunctionDefinition
-from pydantic import create_model, TypeAdapter, BaseModel
+from pydantic import create_model, BaseModel
 
-from .models import TypedChoice, TypedChoiceChunk, TypedChatCompletionMessage
+from .models import TypedChoice, TypedChoiceChunk
 
 TYPED_AI_SCHEMA = "<<TYPEDAISCHEMA>>"
 
@@ -47,12 +47,12 @@ def transform_tools(tools: Iterable[Callable]) -> Dict[str, Tuple[Callable, Base
 T = TypeVar('T')
 
 
-def type_choice(choice: Choice, output_format: T, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoice[T]:
+def type_choice(choice: Choice, response_format, deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoice[T]:
     dumped = choice.model_dump()
-    if output_format is not str and choice.message.content is not None:
-        dumped["message"]["content"] = TypeAdapter(output_format).validate_json(choice.message.content)
+    if choice.message.content is not None:
+        dumped["message"]["content"] = deserializer(choice.message.content)
     dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
-    typed_choice = TypedChoice[output_format].model_validate(dumped)
+    typed_choice = TypedChoice[response_format].model_validate(dumped)
     for tc in typed_choice.message.tool_calls:
         fn, validator, _ = functions[tc.function.name]
         tc._fn = lambda: execute_tool_call(tc, fn, validator)

@@ -38,10 +38,10 @@ class TypedCompletions:
         if tools and not isinstance(tools, Iterable):
             tools = [tools]
         functions = transform_tools(tools)
-        args = _completion_args(False, model, messages, tools, response_format, kwargs, functions)
+        args, deserializer = _completion_args(False, model, messages, tools, response_format, kwargs, functions)
         completion = cast(ChatCompletion, self._completions.create(**args))
         dumped = completion.model_dump()
-        dumped['choices'] = [type_choice(c, response_format, functions) for c in completion.choices]
+        dumped['choices'] = [type_choice(c, response_format, deserializer, functions) for c in completion.choices]
         return TypedChatCompletion[response_format].model_validate(dumped)
 
     def stream(
@@ -86,19 +86,14 @@ class TypedCompletions:
 #         ...
 
 
-def _completion_args(stream, model, messages, tools, response_format, kwargs, functions: Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]):
+def _completion_args(stream, model, messages, tools, response_format: type[T], kwargs, functions: Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> Tuple[dict, Callable[[str], T]]:
     kwargs = copy.deepcopy(kwargs)
     kwargs['stream'] = stream
+    messages, deserializer = Config.transform_messages_fn(messages, response_format)
     if response_format is not str:
         kwargs["response_format"] = {"type": "json_object"}
-        schema_str = Config.response_format_to_schema_fn(response_format)
-        if not messages:
-            raise ValueError("Messages must not be empty")
-        elif messages[-1].get("role") != "user" or not messages[-1].get("content"):
-            raise ValueError("Last message must be a user message")
-        messages = Config.transform_messages_fn(messages, schema_str)
     if tools:
         kwargs['tools'] = [dict(type="function", function=fd) for _, _, fd in functions.values()]
     kwargs['messages'] = messages
     kwargs['model'] = model
-    return kwargs
+    return kwargs, deserializer
