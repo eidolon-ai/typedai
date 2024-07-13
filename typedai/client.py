@@ -6,12 +6,14 @@ from .completions import TypedCompletions
 class TypedAI:
     _client: OpenAI
 
-    def __init__(self, *args, **kwargs):
-        self._client = OpenAI(*args, **kwargs)
+    def __init__(self, client: OpenAI = None):
+        if client is None:
+            client = OpenAI()
+        self._client = client
 
     @property
     def completions(self) -> TypedCompletions:
-        return TypedCompletions(self._client.completions)
+        return TypedCompletions(self._client.chat.completions)
 
 
 # class AsyncTypedAI:

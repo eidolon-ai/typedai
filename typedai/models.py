@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Any, Callable, Generic, TypeVar
+from typing import List, Any, Callable, Generic, TypeVar, Optional
 
 from openai.types.chat import (ChatCompletion,
                                ChatCompletionMessage,
@@ -9,6 +9,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk, ChoiceDelta, ChoiceDeltaToolCall
+from pydantic import field_validator
 
 T = TypeVar('T')
 
@@ -25,7 +26,7 @@ class TypedChoice(Choice, Generic[T]):
 
 
 class TypedChatCompletionMessage(ChatCompletionMessage, Generic[T]):
-    content: T
+    content: Optional[T] = None
     tool_calls: List[TypedChatCompletionMessageToolCall]
 
 
@@ -40,18 +41,19 @@ class TypedChatCompletionMessageToolCall(ChatCompletionMessageToolCall):
         return ChatCompletionToolMessageParam(content=str(result), role="tool", tool_call_id=self.id)
 
 
-class TypedChatCompletionChunk(ChatCompletionChunk):
-    choices: List[TypedChoiceChunk]
+class TypedChatCompletionChunk(ChatCompletionChunk, Generic[T]):
+    choices: List[TypedChoiceChunk[T]]
 
 
-class TypedChoiceChunk(ChoiceChunk):
-    delta: TypedDeltaChoice
+class TypedChoiceChunk(ChoiceChunk, Generic[T]):
+    delta: TypedDeltaChoice[T]
 
     def tool_messages(self) -> List[ChatCompletionToolMessageParam]:
         return [tc.tool_message() for tc in self.message.tool_calls]
 
 
-class TypedDeltaChoice(ChoiceDelta):
+class TypedDeltaChoice(ChoiceDelta, Generic[T]):
+    content: Optional[T] = None
     tool_calls: TypedChoiceDeltaToolCall
 
 
