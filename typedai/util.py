@@ -20,7 +20,8 @@ def snake_to_capital_case(snake_str):
 def callable_params_as_base_model(func: Callable) -> BaseModel:
     # todo, add typedai type wrapper that will flatten a single type hint into its base json schema
     type_hints = get_type_hints(func)
-    return create_model(snake_to_capital_case(func.__name__ + "Model"), **{param: (typ, ...) for param, typ in type_hints.items()})
+    params = {param: (typ, ...) for param, typ in type_hints.items() if param != "return"}
+    return create_model(snake_to_capital_case(func.__name__ + "Model"), **params)
 
 
 def execute_tool_call(tool_call: ChatCompletionMessageToolCall, function: Callable, validator: BaseModel):
@@ -29,7 +30,6 @@ def execute_tool_call(tool_call: ChatCompletionMessageToolCall, function: Callab
 
 
 def transform_tools(tools: Iterable[Callable]) -> Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]:
-    tools = tools or []
     functions: Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]] = dict()
     for fn in tools:
         if not callable(fn):
@@ -49,13 +49,14 @@ T = TypeVar('T')
 
 def type_choice(choice: Choice, output_format: T, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoice[T]:
     dumped = choice.model_dump()
-    if output_format is not str:
+    if output_format is not str and choice.message.content is not None:
         dumped["message"]["content"] = TypeAdapter(output_format).validate_json(choice.message.content)
     dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
-    for tc in dumped["message"]['tool_calls']:
-        fn, validator, _ = functions[tc["function"]["name"]]
-        tc["_fn"] = lambda: execute_tool_call(tc, fn, validator)
-    return TypedChoice[output_format].model_validate(dumped)
+    typed_choice = TypedChoice[output_format].model_validate(dumped)
+    for tc in typed_choice.message.tool_calls:
+        fn, validator, _ = functions[tc.function.name]
+        tc._fn = lambda: execute_tool_call(tc, fn, validator)
+    return typed_choice
 
 
 def type_choice_chunk(choice: ChoiceChunk, output_format, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoiceChunk:

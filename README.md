@@ -24,11 +24,13 @@ from typedai import TypedAI
 from typing import Literal
 from pydantic import BaseModel
 
+
 # response format can be described via pydantic model
 class MyResponseObject(BaseModel):
     philosopher: str
     meaning: str
     bullshit_level: float = .5
+
 
 # tool(s) described entirely by function signature
 def meaning_of_life(philosopher: Literal["Douglas Adams"]) -> str:
@@ -53,7 +55,7 @@ tool_call = choice.message.tool_calls[0]
 assert tool_call() == 42
 
 # tool call messages can be constructed from a response choice
-updated_messages = [*messages, choice.message, *choice.tool_messages()]
+updated_messages = [*messages, choice.message, *choice.messages()]
 ```
 
 

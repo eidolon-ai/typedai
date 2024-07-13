@@ -9,7 +9,6 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk, ChoiceDelta, ChoiceDeltaToolCall
-from pydantic import field_validator
 
 T = TypeVar('T')
 
@@ -21,8 +20,8 @@ class TypedChatCompletion(ChatCompletion, Generic[T]):
 class TypedChoice(Choice, Generic[T]):
     message: TypedChatCompletionMessage[T]
 
-    def tool_messages(self) -> List[ChatCompletionToolMessageParam]:
-        return [tc.tool_message() for tc in self.message.tool_calls]
+    def messages(self) -> List[ChatCompletionToolMessageParam]:
+        return [self.message.model_dump(), *(tc.tool_message() for tc in self.message.tool_calls)]
 
 
 class TypedChatCompletionMessage(ChatCompletionMessage, Generic[T]):
