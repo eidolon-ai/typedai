@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from functools import partial
 from typing import List, Callable, Generic, TypeVar, Optional, Literal, Iterable, Type, Tuple, Any
 
@@ -11,6 +12,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionToolMessageParam,
                                ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_message_tool_call import Function
 from typedai.errors import ToolArgumentParsingError, ChoiceParsingError, CompletionParsingError
 from typedai.util import execute_tool_call
 
@@ -111,10 +113,11 @@ class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
 
     def completion(self, allow_partial_iteration=False) -> TypedChatCompletion[T]:
         if not allow_partial_iteration and not self._terminated:
-            raise ValueError("Stream has not been fully iterated")
+            for _ in self:
+                pass
         if not self._seen:
             raise ValueError("No completions have been seen")
-        choice_acc = [dict(content_acc=[], tool_calls=[], finish_reasons="stop") for _ in self._seen[0].choices]
+        choice_acc = [dict(content_acc=[], tool_calls={}, finish_reasons="stop") for _ in self._seen[0].choices]
         for chunk in self._seen:
             for i in range(len(chunk.choices)):
                 delta = chunk.choices[i].delta
@@ -122,15 +125,26 @@ class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
                 if delta.content:
                     acc["content_acc"].append(delta.content)
                 if delta.tool_calls:
-                    acc["tool_calls"].extend(delta.tool_calls)
-                if delta.finish_reason:
-                    acc["finish_reasons"] = delta.finish_reason
+                    for tc in delta.tool_calls:
+                        tc_acc = acc['tool_calls'].setdefault(tc.index, dict(id=tc.id, function=defaultdict(list), type="function"))
+                        dumped = tc.function.model_dump(exclude={"index"}, exclude_none=True)
+                        for k, v in dumped.items():
+                            if isinstance(v, str):
+                                tc_acc['function'][k].append(v)
+                            else:
+                                raise ValueError(f"Unexpected type {type(v)} for {k} in {dumped}")
+                if chunk.choices[i].finish_reason:
+                    acc["finish_reasons"] = chunk.choices[i].finish_reason
         choices = []
         for i in range(len(choice_acc)):
             acc = choice_acc[i]
             content = "".join(acc["content_acc"]) or None
+            tool_calls = []
+            for tc in acc["tool_calls"].values():
+                function = Function.model_validate({k: "".join(sub_acc) for k, sub_acc in tc['function'].items()})
+                tool_calls.append(ChatCompletionMessageToolCall(id=tc['id'], type=tc['type'], function=function))
             message = ChatCompletionMessage.model_validate(
-                dict(content=content, role="assistant", tool_calls=acc["tool_calls"] or None)
+                dict(content=content, role="assistant", tool_calls=tool_calls or None)
             )
             choices.append(Choice.model_validate(
                 dict(finish_reason=acc["finish_reasons"], index=i, message=message)
@@ -153,7 +167,7 @@ class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
                 dumped["choices"].append(e)
         if error:
             raise CompletionParsingError(completion, dumped["choices"]) from error
-        return TypedChatCompletion[self._response_format].model_validate(**dumped)
+        return TypedChatCompletion[self._response_format].model_validate(dumped)
 
 
 def type_choice(choice: Choice, response_format: Type[T], deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, Type[BaseModel], Any]]) -> TypedChoice[T]:
