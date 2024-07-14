@@ -1,7 +1,7 @@
+from functools import partial
 from typing import Callable, get_type_hints, Tuple, Dict, Iterable, TypeVar
 
 from openai.types import FunctionDefinition as FunctionDefinitionModel
-from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk
 from openai.types.shared_params import FunctionDefinition
@@ -25,9 +25,9 @@ def callable_params_as_base_model(func: Callable) -> BaseModel:
     return create_model(snake_to_capital_case(func.__name__ + "Model"), **params)
 
 
-def execute_tool_call(tool_call: ChatCompletionMessageToolCall, function: Callable, validator: BaseModel):
-    obj = validator.model_validate_json(tool_call.function.arguments)
-    return function(**obj.model_dump())
+def execute_tool_call(arguments: str, function: Callable, validator: BaseModel):
+    obj = validator.model_validate_json(arguments)
+    return function(**{k: v for k, v in obj})
 
 
 def transform_tools(tools: Iterable[Callable]) -> Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]:
@@ -58,7 +58,7 @@ def type_choice(choice: Choice, response_format, deserializer: Callable[[str], T
         typed_choice = TypedChoice[response_format].model_validate(dumped)
         for tc in typed_choice.message.tool_calls:
             fn, validator, _ = functions[tc.function.name]
-            tc._fn = lambda: execute_tool_call(tc, fn, validator)
+            tc._fn = partial(execute_tool_call, tc.function.arguments, function=fn, validator=validator)
         return typed_choice
     except Exception as e:
         raise ChoiceParsingError(choice, e) from e

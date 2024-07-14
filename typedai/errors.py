@@ -3,7 +3,6 @@ from typing import List, Union, Tuple
 from openai.types.chat import ChatCompletionMessageParam
 from openai.types.chat.chat_completion import Choice, ChatCompletion
 from typedai.messages import User
-from typedai.models import TypedChoice
 
 
 class ChoiceParsingError(Exception):
@@ -22,15 +21,16 @@ class ChoiceParsingError(Exception):
         return f"ChoiceParsingError(choice={self.choice.__repr__()}, error={self.error.__repr__()})"
 
     def messages(self) -> List[ChatCompletionMessageParam]:
-        return [self.choice.model_dump(), User("An error occurred while parsing your response: {self.error}")]
+        return [self.choice.model_dump(), User(f"An error occurred while parsing your response: {str(self.error)}")]
 
 
 class CompletionParsingError(Exception):
     raw_completion: ChatCompletion
-    choices: List[Union[ChoiceParsingError | TypedChoice]]
+    choices: List[Union[ChoiceParsingError, 'TypedChoice']]
     errors: List[Tuple[int, ChoiceParsingError]]
 
     def __init__(self, completion: ChatCompletion, choices: List[ChoiceParsingError]):
+        self.raw_completion = completion
         self.choices = choices
         self.errors = [(i, c) for i, c in enumerate(choices) if isinstance(c, ChoiceParsingError)]
         if len(self.errors) == 1:
@@ -42,8 +42,13 @@ class CompletionParsingError(Exception):
     def __str__(self):
         return str(self.errors)
 
-    def __repr__(self):
-        return f"MultiChoiceParsingError(choices={self.errors.__repr__()})"
-
     def messages(self) -> List[ChatCompletionMessageParam]:
         return self.choices[0].messages()
+
+
+class ToolArgumentParsingError(Exception):
+    error: Exception
+
+    def __init__(self, error: Exception):
+        self.error = error
+        super().__init__(f"Error occurred while validating tool call arguments: {error}")
