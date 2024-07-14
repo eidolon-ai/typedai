@@ -34,19 +34,10 @@ class TypedCompletions:
             **kwargs
     ) -> TypedChatCompletion[T]:
         fn_tools: Iterable[Callable] = _clean_maybe_iterable(fn_tools)
-        chat_args = dict(
-            stream=False,
-            model=model,
-            **kwargs
-        )
-        if response_type is not str:
-            chat_args["response_format"] = {"type": "json_object"}
-        messages, deserializer = Config.transform_messages_fn(messages, response_type)
-        chat_args['messages'] = messages
         functions = transform_tools(fn_tools)
-        if fn_tools:
-            chat_args.setdefault("tools", []).extend([dict(type="function", function=fd) for _, _, fd in functions.values()])
-        completion = cast(ChatCompletion, self._completions.create(**chat_args))
+        chat_args = dict(stream=False, model=model, **kwargs)
+        messages, deserializer = Config.transform_messages_fn(messages, response_type)
+        completion: ChatCompletion = self._create(chat_args, fn_tools, functions, messages, response_type)
         dumped = completion.model_dump(exclude={"choices"})
         dumped["choices"] = []
         error = None
@@ -69,20 +60,20 @@ class TypedCompletions:
             **kwargs
     ) -> TypedStream[T]:
         fn_tools: Iterable[Callable] = _clean_maybe_iterable(fn_tools)
-        chat_args = dict(
-            stream=True,
-            model=model,
-            **kwargs
-        )
+        functions = transform_tools(fn_tools)
+        chat_args = dict(stream=True, model=model, **kwargs)
+        messages, deserializer = Config.transform_messages_fn(messages, response_type)
+        stream: Stream[ChatCompletionChunk] = self._create(chat_args, fn_tools, functions, messages, response_type)
+        return TypedStream(stream, response_type, deserializer, functions)
+
+    def _create(self, chat_args, fn_tools, functions, messages, response_type):
         if response_type is not str:
             chat_args["response_format"] = {"type": "json_object"}
-        messages, deserializer = Config.transform_messages_fn(messages, response_type)
         chat_args['messages'] = messages
-        functions: Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]] = transform_tools(fn_tools)
         if fn_tools:
-            chat_args.setdefault("tools", []).extend([dict(type="function", function=fd) for _, _, fd in functions.values()])
-        stream = cast(Stream[ChatCompletionChunk], self._completions.create(**chat_args))
-        return TypedStream(stream, response_type, deserializer, functions)
+            extra_tools = [dict(type="function", function=fd) for _, _, fd in functions.values()]
+            chat_args.setdefault("tools", []).extend(extra_tools)
+        return self._completions.create(**chat_args)
 
 
 def _clean_maybe_iterable(value):
