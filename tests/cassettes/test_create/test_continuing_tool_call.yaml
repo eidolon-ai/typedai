@@ -1,0 +1,206 @@
+interactions:
+- request:
+    body: '{"messages": [{"content": "You are a helpful assistant. You are very bad
+      at math so you use tools to perform math for you.", "role": "system"}, {"content":
+      "What is 2 + 2?", "role": "user"}], "model": "gpt-3.5-turbo", "stream": false,
+      "tools": [{"type": "function", "function": {"name": "add", "description": null,
+      "parameters": {"properties": {"a": {"title": "A", "type": "integer"}, "b": {"title":
+      "B", "type": "integer"}}, "required": ["a", "b"], "title": "Addmodel", "type":
+      "object"}}}, {"type": "function", "function": {"name": "subtract", "description":
+      null, "parameters": {"properties": {"a": {"title": "A", "type": "integer"},
+      "b": {"title": "B", "type": "integer"}}, "required": ["a", "b"], "title": "Subtractmodel",
+      "type": "object"}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '749'
+      content-type:
+      - application/json
+      host:
+      - api.openai.com
+      user-agent:
+      - OpenAI/Python 1.35.13
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.35.13
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.4
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAA7RTTY+bMBC98yusOZMVIUkbuEWtekirJmq21W6bFTLGIW79QeyhGzbKf6+ADbA5
+        5VIOaDyP9+Y9azh5hIDIICbA9hSZKuQokkH1MGXFstos9HT1Q8m5OdhoY3dfjhX4NcOkvznDC+uO
+        GVVIjsLoFmaWU+S16vh9GERROI4mDaBMxmVNywscTe5mIyxtakbBOJy9MvdGMO4gJr88Qgg5Ne/a
+        o874EWIS+JeO4s7RnEPcfUQIWCPrDlDnhEOqEfweZEYj17VtXUo5ANAYmTAqZT+4fU6Dur8oKmUy
+        f86qw/pl6cTD/ad0OVlS8d2t3n0ezGulq6IxtCs16y5ogHf9+GoYIaCpasNk2RWNEKA2LxXXWFuG
+        0xboFmIS+mQLaVOd4Q3jPDid/ZsiLuz68DMKN4vH/OuHj9/u17OVe3z+e/wfEV2ZoqUMb8w5vS1n
+        Vz95V8lBmrywJnVXywA7oYXbJ5ZT1zge7oZ3EX1qdrV8s35QWKMKTND84bqWHQdRqwr979Gj0wuI
+        BqkcsGZz79UnuMohV8lO6Jzbwopudb2z9w8AAP//AwDM6bKUuQMAAA==
+    headers:
+      CF-Cache-Status:
+      - DYNAMIC
+      CF-RAY:
+      - 8a3492977b5e9369-SEA
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Sun, 14 Jul 2024 21:23:14 GMT
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cf_bm=mvYd26UgQNQLHdfdTg7SWfqydEOMRGO4L2m6YfpZvtU-1720992194-1.0.1.1-Ozt2AUUI_8J0JT.mHVly9s0ccTKeM9SIdMEtZVNz2eUdP0oxOPkp3ZfWAOHEi6sLsaHbff_0IWnn2CEI2nJgxA;
+        path=/; expires=Sun, 14-Jul-24 21:53:14 GMT; domain=.api.openai.com; HttpOnly;
+        Secure; SameSite=None
+      - _cfuvid=1V51ggezYAMmekHcGfVUtrZW2d_RwFNoqDSubOXWagY-1720992194190-0.0.1.1-604800000;
+        path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      alt-svc:
+      - h3=":443"; ma=86400
+      openai-organization:
+      - august-data
+      openai-processing-ms:
+      - '771'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=15552000; includeSubDomains; preload
+      x-ratelimit-limit-requests:
+      - '10000'
+      x-ratelimit-limit-tokens:
+      - '15000000'
+      x-ratelimit-remaining-requests:
+      - '9999'
+      x-ratelimit-remaining-tokens:
+      - '14999953'
+      x-ratelimit-reset-requests:
+      - 6ms
+      x-ratelimit-reset-tokens:
+      - 0s
+      x-request-id:
+      - req_0aa45ca975ef442cde0318a43684cfec
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"messages": [{"content": "You are a helpful assistant. You are very bad
+      at math so you use tools to perform math for you.", "role": "system"}, {"content":
+      "What is 2 + 2?", "role": "user"}, {"role": "assistant", "function_call": null,
+      "tool_calls": [{"id": "call_8wdyqPzJsiXTFbJ3JaiUsO6K", "function": {"arguments":
+      "{\"a\": 2, \"b\": 2}", "name": "add"}, "type": "function"}, {"id": "call_ArPqZ92SAYgNCDRTP5OsYwvx",
+      "function": {"arguments": "{\"a\": 4, \"b\": 2}", "name": "subtract"}, "type":
+      "function"}], "content": "None"}, {"content": "4", "role": "tool", "tool_call_id":
+      "call_8wdyqPzJsiXTFbJ3JaiUsO6K"}, {"content": "2", "role": "tool", "tool_call_id":
+      "call_ArPqZ92SAYgNCDRTP5OsYwvx"}], "model": "gpt-3.5-turbo", "stream": false}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '740'
+      content-type:
+      - application/json
+      cookie:
+      - __cf_bm=mvYd26UgQNQLHdfdTg7SWfqydEOMRGO4L2m6YfpZvtU-1720992194-1.0.1.1-Ozt2AUUI_8J0JT.mHVly9s0ccTKeM9SIdMEtZVNz2eUdP0oxOPkp3ZfWAOHEi6sLsaHbff_0IWnn2CEI2nJgxA;
+        _cfuvid=1V51ggezYAMmekHcGfVUtrZW2d_RwFNoqDSubOXWagY-1720992194190-0.0.1.1-604800000
+      host:
+      - api.openai.com
+      user-agent:
+      - OpenAI/Python 1.35.13
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.35.13
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.4
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAwAAAP//VJDNbsIwEITveYqVryUoCSBIrq049UZ7qKoKGbMkbh2vay8Finj3yiH8
+        9OLDzM742z0mAEKvRQVCNZJV60xamuzwxvnPXn8/T0fz3WH2NHn8ne0XC3qdi0FM0OoTFV9SQ0Wt
+        M8ia7NlWHiVjbM2nRVaWRV6OO6OlNZoYqx2no+Ek5a1fUZrlxaRPNqQVBlHBewIAcOzeyGjXuBcV
+        ZIOL0mIIskZRXYcAhCcTFSFD0IGlZTG4mYoso+2wXxoEacMOPTBBAQ9QgA4wHop+/HT9x1DtPK0i
+        k90ac9U32urQLD3KQDZ2BiZ3jp8SgI9un+0/ROE8tY6XTF9oY2Ge5+c+cTvhnVv0JhNLc6+Pkp5Q
+        hENgbJcbbWv0zutuvciZnJI/AAAA//8DAE5B8sndAQAA
+    headers:
+      CF-Cache-Status:
+      - DYNAMIC
+      CF-RAY:
+      - 8a34929dcfdb9369-SEA
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Sun, 14 Jul 2024 21:23:14 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      alt-svc:
+      - h3=":443"; ma=86400
+      openai-organization:
+      - august-data
+      openai-processing-ms:
+      - '271'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=15552000; includeSubDomains; preload
+      x-ratelimit-limit-requests:
+      - '10000'
+      x-ratelimit-limit-tokens:
+      - '15000000'
+      x-ratelimit-remaining-requests:
+      - '9999'
+      x-ratelimit-remaining-tokens:
+      - '14999950'
+      x-ratelimit-reset-requests:
+      - 6ms
+      x-ratelimit-reset-tokens:
+      - 0s
+      x-request-id:
+      - req_47a3c4ab03c51d529ae207b0021933c9
+    status:
+      code: 200
+      message: OK
+version: 1
