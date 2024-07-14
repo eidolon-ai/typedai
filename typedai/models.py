@@ -6,7 +6,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionMessage,
                                ChatCompletionMessageToolCall,
                                ChatCompletionToolMessageParam,
-                               ChatCompletionChunk, ChatCompletionAssistantMessageParam)
+                               ChatCompletionChunk, ChatCompletionAssistantMessageParam, ChatCompletionMessageParam)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk, ChoiceDelta, ChoiceDeltaToolCall
 
@@ -16,11 +16,14 @@ T = TypeVar('T')
 class TypedChatCompletion(ChatCompletion, Generic[T]):
     choices: List[TypedChoice[T]]
 
+    def messages(self) -> List[ChatCompletionMessageParam]:
+        return self.choices[0].messages()
+
 
 class TypedChoice(Choice, Generic[T]):
     message: TypedChatCompletionMessage[T]
 
-    def messages(self) -> List[ChatCompletionToolMessageParam]:
+    def messages(self) -> List[ChatCompletionMessageParam]:
         return [self.message.as_message_param(), *(tc.build_completion_param() for tc in self.message.tool_calls)]
 
 

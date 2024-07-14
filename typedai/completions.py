@@ -1,6 +1,7 @@
 from typing import Iterable, Union, Callable, cast, TypeVar, Type
 
 from typedai.config import Config
+from typedai.errors import ChoiceParsingError, CompletionParsingError
 
 try:
     import jinja2
@@ -45,8 +46,17 @@ class TypedCompletions:
         if fn_tools:
             chat_args.setdefault("tools", []).extend([dict(type="function", function=fd) for _, _, fd in functions.values()])
         completion = cast(ChatCompletion, self._completions.create(**chat_args))
-        dumped = completion.model_dump()
-        dumped['choices'] = [type_choice(c, response_type, deserializer, functions) for c in completion.choices]
+        dumped = completion.model_dump(exclude={"choices"})
+        dumped["choices"] = []
+        error = None
+        for choice in completion.choices:
+            try:
+                dumped["choices"].append(type_choice(choice, response_type, deserializer, functions))
+            except ChoiceParsingError as e:
+                error = e
+                dumped["choices"].append(e)
+        if error:
+            raise CompletionParsingError(completion, dumped["choices"]) from error
         return TypedChatCompletion[response_type].model_validate(dumped)
 
     def stream(
@@ -59,7 +69,7 @@ class TypedCompletions:
         fn_tools: Iterable[Callable] = _clean_maybe_iterable(fn_tools)
         functions = transform_tools(fn_tools)
         chat_args = dict(
-            stream=False,
+            stream=True,
             model=model,
             messages=messages,
             **kwargs

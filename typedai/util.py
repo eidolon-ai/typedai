@@ -6,6 +6,7 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk
 from openai.types.shared_params import FunctionDefinition
 from pydantic import create_model, BaseModel
+from typedai.errors import ChoiceParsingError
 
 from .models import TypedChoice, TypedChoiceChunk
 
@@ -48,16 +49,19 @@ T = TypeVar('T')
 
 
 def type_choice(choice: Choice, response_format, deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoice[T]:
-    dumped = choice.model_dump()
-    if choice.message.content is not None:
-        dumped["message"]["raw_content"] = choice.message.content
-        dumped["message"]["content"] = deserializer(choice.message.content)
-    dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
-    typed_choice = TypedChoice[response_format].model_validate(dumped)
-    for tc in typed_choice.message.tool_calls:
-        fn, validator, _ = functions[tc.function.name]
-        tc._fn = lambda: execute_tool_call(tc, fn, validator)
-    return typed_choice
+    try:
+        dumped = choice.model_dump()
+        if choice.message.content is not None:
+            dumped["message"]["raw_content"] = choice.message.content
+            dumped["message"]["content"] = deserializer(choice.message.content)
+        dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
+        typed_choice = TypedChoice[response_format].model_validate(dumped)
+        for tc in typed_choice.message.tool_calls:
+            fn, validator, _ = functions[tc.function.name]
+            tc._fn = lambda: execute_tool_call(tc, fn, validator)
+        return typed_choice
+    except Exception as e:
+        raise ChoiceParsingError(choice, e) from e
 
 
 def type_choice_chunk(choice: ChoiceChunk, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoiceChunk:
