@@ -1,7 +1,5 @@
-from typing import List, Union, Tuple
-
 from openai.types.chat import ChatCompletionMessageParam
-from openai.types.chat.chat_completion import Choice, ChatCompletion
+from openai.types.chat.chat_completion import Choice
 from typedai.messages import User
 
 
@@ -12,38 +10,10 @@ class ChoiceParsingError(Exception):
     def __init__(self, choice: Choice, error: Exception):
         self.choice = choice
         self.error = error
-        super().__init__(f"Error occurred while parsing choice: {error}")
+        super().__init__(f"{type(error).__name__}: {error}")
 
-    def __str__(self):
-        return str(self.error)
-
-    def __repr__(self):
-        return f"ChoiceParsingError(choice={self.choice.__repr__()}, error={self.error.__repr__()})"
-
-    def messages(self) -> List[ChatCompletionMessageParam]:
-        return [self.choice.model_dump(), User(f"An error occurred while parsing your response: {str(self.error)}")]
-
-
-class CompletionParsingError(Exception):
-    raw_completion: ChatCompletion
-    choices: List[Union[ChoiceParsingError, 'TypedChoice']]
-    errors: List[Tuple[int, ChoiceParsingError]]
-
-    def __init__(self, completion: ChatCompletion, choices: List[ChoiceParsingError]):
-        self.raw_completion = completion
-        self.choices = choices
-        self.errors = [(i, c) for i, c in enumerate(choices) if isinstance(c, ChoiceParsingError)]
-        if len(self.errors) == 1:
-            index, error = self.errors[0]
-            super().__init__(f"Error occurred while parsing choice[{index}]: {self.errors[0]}")
-        else:
-            super().__init__(f"Multiple errors occurred while parsing choices {', '.join([str(i) for i, _ in self.errors])}")
-
-    def __str__(self):
-        return str(self.errors)
-
-    def messages(self) -> List[ChatCompletionMessageParam]:
-        return self.choices[0].messages()
+    def message(self) -> ChatCompletionMessageParam:
+        return User(f"An error occurred while parsing your response: {str(self.error)}")
 
 
 class ToolArgumentParsingError(Exception):

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from functools import partial
-from typing import List, Callable, Generic, TypeVar, Optional, Literal, Iterable, Type, Tuple, Any
+from typing import List, Callable, Generic, TypeVar, Literal, Iterable, Type, Tuple, Any, Optional
 
 from openai import Stream, BaseModel
 from openai.types import FunctionDefinition
@@ -13,8 +12,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call import Function
-from typedai.errors import ToolArgumentParsingError, ChoiceParsingError, CompletionParsingError
-from typedai.util import execute_tool_call
+from typedai.errors import ToolArgumentParsingError, ChoiceParsingError
 
 T = TypeVar('T')
 
@@ -25,67 +23,61 @@ ToolErrorHandling = Literal[ALWAYS_RAISE, HANDLE_PARSE_ERROR, HANDLE_ANY_ERROR]
 
 
 class TypedChatCompletion(ChatCompletion, Generic[T]):
-    choices: List[TypedChoice[T]]
+    _parser: Callable[[Optional[str]], T]
+    _functions: dict[str, Tuple[Callable, Type[BaseModel], Any]]
 
-    def messages(self, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> List[ChatCompletionMessageParam]:
-        return self.choices[0].messages(tool_error_handling)
-
-
-class TypedChoice(Choice, Generic[T]):
-    message: TypedChatCompletionMessage[T]
-
-    def messages(self, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> List[ChatCompletionMessageParam]:
-        return [self.message.as_message_param(), *(tc.build_completion_param(tool_error_handling) for tc in self.message.tool_calls)]
-
-
-class TypedChatCompletionMessage(ChatCompletionMessage, Generic[T]):
-    raw_content: Optional[str] = None
-    content: Optional[T] = None
-    tool_calls: List[TypedChatCompletionMessageToolCall]
-
-    def as_message_param(self) -> ChatCompletionAssistantMessageParam:
-        dumped = self.model_dump(exclude={"raw_content", "content"})
-        dumped["content"] = str(self.raw_content)
-        if not dumped.get("tool_calls"):
-            del dumped["tool_calls"]
-        return ChatCompletionAssistantMessageParam(**dumped)
-
-
-class TypedChatCompletionMessageToolCall(ChatCompletionMessageToolCall):
-    _fn: Callable
-
-    def __call__(self):
-        return self._fn()
-
-    def build_completion_param(self, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> ChatCompletionToolMessageParam:
+    def parse_content(self, choice: int = 0) -> T:
+        choice_ = self.choices[choice]
         try:
-            return ChatCompletionToolMessageParam(content=str(self()), role="tool", tool_call_id=self.id)
-        except ToolArgumentParsingError as e:
-            if tool_error_handling in {HANDLE_PARSE_ERROR, HANDLE_ANY_ERROR}:
-                return ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=self.id)
-            else:
-                raise e
+            return self._parser(choice_.message.content)
         except Exception as e:
-            if tool_error_handling == HANDLE_ANY_ERROR:
-                return ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=self.id)
-            else:
-                raise e
+            raise ChoiceParsingError(choice_, e) from e
+
+    def build_messages(self, choice: int = 0, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> List[ChatCompletionMessageParam]:
+        return [self.choices[choice].message.model_dump(), *self.build_tool_completions(choice, tool_error_handling)]
+
+    def has_tool_calls(self, choice: int = 0) -> bool:
+        return bool(self.choices[choice].message.tool_calls)
+
+    def build_tool_completions(self, choice: int = 0, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> List[ChatCompletionToolMessageParam]:
+        acc = []
+        for tc in self.choices[choice].message.tool_calls or []:
+            try:
+                result = self.execute_tool_call(tc)
+                acc.append(ChatCompletionToolMessageParam(content=str(result), role="tool", tool_call_id=tc.id))
+            except ToolArgumentParsingError as e:
+                if tool_error_handling == HANDLE_ANY_ERROR:
+                    acc.append(ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=tc.id))
+                else:
+                    raise e
+            except Exception as e:
+                if tool_error_handling == HANDLE_ANY_ERROR:
+                    acc.append(ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=tc.id))
+                else:
+                    raise e
+        return acc
+
+    def execute_tool_call(self, tool_call: ChatCompletionMessageToolCall) -> Any:
+        fn, parser, _ = self._functions[tool_call.function.name]
+        try:
+            parsed = parser.model_validate_json(tool_call.function.arguments)
+        except Exception as e:
+            raise ToolArgumentParsingError(e) from e
+        return fn(**{k: v for k, v in parsed})
 
 
 class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
     stream: Stream
     _seen: List[ChatCompletionChunk]
     _terminated: bool
-    _response_format: Type[T]
-    _deserializer: Callable[[str], T]
-    _functions: dict[str, Tuple[Callable, Type[BaseModel], FunctionDefinition]]
+    _parser: Callable[[Optional[str]], T]
+    _functions: dict[str, Tuple[Callable, Type[BaseModel], FunctionDefinition], Any]
 
-    def __init__(self, stream, response_format: Type[T], deserializer: Callable[[str], T], functions):
+    def __init__(self, stream, parser: Callable[[Optional[str]], T], functions):
         self.stream = stream
         self._seen = []
         self._terminated = False
-        self._response_format = response_format
-        self._deserializer = deserializer
+        self._parser = parser
         self._functions = functions
 
     def __next__(self) -> ChatCompletionChunk:
@@ -109,7 +101,7 @@ class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
         self.stream.__exit__(*args, **kwargs)
 
     def messages(self, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR, allow_partial_iteration=False) -> List[ChatCompletionMessageParam]:
-        return self.completion(allow_partial_iteration).messages(tool_error_handling)
+        return self.completion(allow_partial_iteration).build_messages(tool_error_handling)
 
     def completion(self, allow_partial_iteration=False) -> TypedChatCompletion[T]:
         if not allow_partial_iteration and not self._terminated:
@@ -154,33 +146,7 @@ class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
         dumped_chunk["choices"] = choices
         dumped_chunk["object"] = "chat.completion"
 
-        completion = ChatCompletion(**dumped_chunk)
-        dumped = completion.model_dump(exclude={"choices"})
-
-        error = None
-        dumped["choices"] = []
-        for choice in choices:
-            try:
-                dumped["choices"].append(type_choice(choice, self._response_format, self._deserializer, self._functions))
-            except ChoiceParsingError as e:
-                error = e
-                dumped["choices"].append(e)
-        if error:
-            raise CompletionParsingError(completion, dumped["choices"]) from error
-        return TypedChatCompletion[self._response_format].model_validate(dumped)
-
-
-def type_choice(choice: Choice, response_format: Type[T], deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, Type[BaseModel], Any]]) -> TypedChoice[T]:
-    try:
-        dumped = choice.model_dump()
-        if choice.message.content is not None:
-            dumped["message"]["raw_content"] = choice.message.content
-            dumped["message"]["content"] = deserializer(choice.message.content)
-        dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
-        typed_choice = TypedChoice[response_format].model_validate(dumped)
-        for tc in typed_choice.message.tool_calls:
-            fn, validator, _ = functions[tc.function.name]
-            tc._fn = partial(execute_tool_call, tc.function.arguments, function=fn, validator=validator)
-        return typed_choice
-    except Exception as e:
-        raise ChoiceParsingError(choice, e) from e
+        completion = TypedChatCompletion(**dumped_chunk)
+        completion._parser = self._parser
+        completion._functions = self._functions
+        return completion

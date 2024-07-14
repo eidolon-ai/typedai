@@ -1,10 +1,7 @@
-from typing import Callable, get_type_hints, Tuple, Dict, Iterable, TypeVar, Type
+from typing import Callable, get_type_hints, Tuple, Dict, Iterable, Type, Optional, TypeVar
 
 from openai.types import FunctionDefinition
 from pydantic import create_model, BaseModel
-from typedai.errors import ToolArgumentParsingError
-
-TYPED_AI_SCHEMA = "<<TYPEDAISCHEMA>>"
 
 
 def snake_to_capital_case(snake_str):
@@ -17,14 +14,6 @@ def callable_params_as_base_model(func: Callable) -> Type[BaseModel]:
     type_hints = get_type_hints(func)
     params = {param: (typ, ...) for param, typ in type_hints.items() if param != "return"}
     return create_model(snake_to_capital_case(func.__name__ + "Model"), **params)
-
-
-def execute_tool_call(arguments: str, function: Callable, validator: BaseModel):
-    try:
-        obj = validator.model_validate_json(arguments)
-    except Exception as e:
-        raise ToolArgumentParsingError(e)
-    return function(**{k: v for k, v in obj})
 
 
 def transform_tools(tools: Iterable[Callable]) -> Dict[str, Tuple[Callable, Type[BaseModel], dict]]:
@@ -43,3 +32,13 @@ def transform_tools(tools: Iterable[Callable]) -> Dict[str, Tuple[Callable, Type
 
 
 T = TypeVar('T')
+
+
+def optional_parser(v: Optional[str], parser: Callable[[str], T]) -> Optional[T]:
+    return parser(v) if v is not None else None
+
+
+def required_parser(v: Optional[str], parser: Callable[[str], T]) -> T:
+    if v is None:
+        raise ValueError("Expected a value, got None")
+    return parser(v)
