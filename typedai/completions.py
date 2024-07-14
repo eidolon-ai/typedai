@@ -1,6 +1,4 @@
-import copy
-import json
-from typing import Iterable, Union, Callable, cast, TypeVar, Type, Tuple, Dict
+from typing import Iterable, Union, Callable, cast, TypeVar, Type
 
 from typedai.config import Config
 
@@ -8,11 +6,10 @@ try:
     import jinja2
 except ImportError:
     jinja2 = None
-from openai import Stream, BaseModel
+from openai import Stream
 from openai.resources.chat import Completions
-from openai.types import ChatModel, FunctionDefinition
-from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
-from pydantic import TypeAdapter
+from openai.types import ChatModel
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam, ChatCompletionChunk
 
 from .models import TypedChatCompletion, TypedChatCompletionChunk
 from .util import transform_tools, type_choice, type_choice_chunk
@@ -30,37 +27,51 @@ class TypedCompletions:
             self,
             messages: Iterable[ChatCompletionMessageParam],
             model: Union[str, ChatModel],
-            tools: Iterable[Callable] | Callable = None,
-            response_format: Type[T] = str,
+            fn_tools: Union[Iterable[Callable], Callable] = None,
+            response_type: Type[T] = str,
             **kwargs
     ) -> TypedChatCompletion[T]:
-        tools = tools or []
-        if tools and not isinstance(tools, Iterable):
-            tools = [tools]
-        functions = transform_tools(tools)
-        args, deserializer = _completion_args(False, model, messages, tools, response_format, kwargs, functions)
-        completion = cast(ChatCompletion, self._completions.create(**args))
+        fn_tools: Iterable[Callable] = _clean_maybe_iterable(fn_tools)
+        chat_args = dict(
+            stream=False,
+            model=model,
+            **kwargs
+        )
+        if response_type is not str:
+            chat_args["response_format"] = {"type": "json_object"}
+        messages, deserializer = Config.transform_messages_fn(messages, response_type)
+        chat_args['messages'] = messages
+        functions = transform_tools(fn_tools)
+        if fn_tools:
+            chat_args.setdefault("tools", []).extend([dict(type="function", function=fd) for _, _, fd in functions.values()])
+        completion = cast(ChatCompletion, self._completions.create(**chat_args))
         dumped = completion.model_dump()
-        dumped['choices'] = [type_choice(c, response_format, deserializer, functions) for c in completion.choices]
-        return TypedChatCompletion[response_format].model_validate(dumped)
+        dumped['choices'] = [type_choice(c, response_type, deserializer, functions) for c in completion.choices]
+        return TypedChatCompletion[response_type].model_validate(dumped)
 
     def stream(
             self,
             messages: Iterable[ChatCompletionMessageParam],
             model: Union[str, ChatModel],
-            tools: Iterable[Callable] | Callable = None,
-            response_format: Type[T] = str,
+            fn_tools: Iterable[Callable] | Callable = None,
             **kwargs
-    ) -> Stream[TypedChatCompletionChunk[T]]:
-        tools = tools or []
-        if tools and not isinstance(tools, Iterable):
-            tools = [tools]
-        functions = transform_tools(tools)
-        args = _completion_args(True, model, messages, tools, response_format, kwargs, functions)
-        for chunk in self._completions.create(**args):
+    ) -> Stream[TypedChatCompletionChunk]:
+        fn_tools: Iterable[Callable] = _clean_maybe_iterable(fn_tools)
+        functions = transform_tools(fn_tools)
+        chat_args = dict(
+            stream=False,
+            model=model,
+            messages=messages,
+            **kwargs
+        )
+        if fn_tools:
+            chat_args.setdefault("tools", []).extend([dict(type="function", function=fd) for _, _, fd in functions.values()])
+
+        stream = cast(Stream[ChatCompletionChunk], self._completions.create(**chat_args))
+        for chunk in stream:
             dumped = chunk.model_dump()
-            dumped['choices'] = [[type_choice_chunk(c, response_format, functions) for c in chunk.choices]]
-            yield TypedChatCompletionChunk[response_format](**dumped)
+            dumped['choices'] = [type_choice_chunk(c, functions) for c in chunk.choices]
+            yield TypedChatCompletionChunk.model_validate(dumped)
 
 
 # class AsyncTypedCompletions:
@@ -86,14 +97,10 @@ class TypedCompletions:
 #         ...
 
 
-def _completion_args(stream, model, messages, tools, response_format: type[T], kwargs, functions: Dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> Tuple[dict, Callable[[str], T]]:
-    kwargs = copy.deepcopy(kwargs)
-    kwargs['stream'] = stream
-    messages, deserializer = Config.transform_messages_fn(messages, response_format)
-    if response_format is not str:
-        kwargs["response_format"] = {"type": "json_object"}
-    if tools:
-        kwargs['tools'] = [dict(type="function", function=fd) for _, _, fd in functions.values()]
-    kwargs['messages'] = messages
-    kwargs['model'] = model
-    return kwargs, deserializer
+def _clean_maybe_iterable(value):
+    if value is None:
+        return []
+    elif isinstance(value, Iterable) and not isinstance(value, str):
+        return value
+    else:
+        return [value]

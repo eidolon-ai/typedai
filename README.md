@@ -45,8 +45,8 @@ messages = [
 completion = TypedAI().completions.create(
     model="gpt-3.5-turbo",
     messages=messages,
-    tools=meaning_of_life,
-    response_format=MyResponseObject
+    fn_tools=meaning_of_life,
+    response_type=MyResponseObject
 )
 choice = completion.choices[0]
 tool_call = choice.message.tool_calls[0]

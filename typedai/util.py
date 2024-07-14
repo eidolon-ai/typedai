@@ -50,6 +50,7 @@ T = TypeVar('T')
 def type_choice(choice: Choice, response_format, deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoice[T]:
     dumped = choice.model_dump()
     if choice.message.content is not None:
+        dumped["message"]["raw_content"] = choice.message.content
         dumped["message"]["content"] = deserializer(choice.message.content)
     dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
     typed_choice = TypedChoice[response_format].model_validate(dumped)
@@ -59,9 +60,9 @@ def type_choice(choice: Choice, response_format, deserializer: Callable[[str], T
     return typed_choice
 
 
-def type_choice_chunk(choice: ChoiceChunk, output_format, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoiceChunk:
+def type_choice_chunk(choice: ChoiceChunk, functions: dict[str, Tuple[Callable, BaseModel, FunctionDefinition]]) -> TypedChoiceChunk:
     dumped = choice.model_dump()
     for tc in dumped["delta"]['tool_calls']:
         fn, validator, _ = functions[tc["function"]["name"]]
         tc["_fn"] = lambda: execute_tool_call(tc, fn, validator)
-    return TypedChoiceChunk[output_format](**dumped)
+    return TypedChoiceChunk(**dumped)
