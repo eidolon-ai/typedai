@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from typing import List, Any, Callable, Generic, TypeVar, Optional, Literal
+from functools import partial
+from typing import List, Callable, Generic, TypeVar, Optional, Literal, Iterable, Type, Tuple, Any
 
+from openai import Stream, BaseModel
+from openai.types import FunctionDefinition
 from openai.types.chat import (ChatCompletion,
                                ChatCompletionMessage,
                                ChatCompletionMessageToolCall,
                                ChatCompletionToolMessageParam,
-                               ChatCompletionChunk, ChatCompletionAssistantMessageParam, ChatCompletionMessageParam)
+                               ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
-from openai.types.chat.chat_completion_chunk import Choice as ChoiceChunk, ChoiceDelta, ChoiceDeltaToolCall
-from typedai.errors import ToolArgumentParsingError
+from typedai.errors import ToolArgumentParsingError, ChoiceParsingError, CompletionParsingError
+from typedai.util import execute_tool_call
 
 T = TypeVar('T')
 
@@ -67,27 +70,103 @@ class TypedChatCompletionMessageToolCall(ChatCompletionMessageToolCall):
                 raise e
 
 
-class TypedChatCompletionChunk(ChatCompletionChunk):
-    choices: List[TypedChoiceChunk]
+class TypedStream(Iterable[ChatCompletionChunk], Generic[T]):
+    stream: Stream
+    _seen: List[ChatCompletionChunk]
+    _terminated: bool
+    _response_format: Type[T]
+    _deserializer: Callable[[str], T]
+    _functions: dict[str, Tuple[Callable, Type[BaseModel], FunctionDefinition]]
+
+    def __init__(self, stream, response_format: Type[T], deserializer: Callable[[str], T], functions):
+        self.stream = stream
+        self._seen = []
+        self._terminated = False
+        self._response_format = response_format
+        self._deserializer = deserializer
+        self._functions = functions
+
+    def __next__(self) -> ChatCompletionChunk:
+        try:
+            next__ = self.stream.__next__()
+            if not isinstance(next__, ChatCompletionChunk):
+                raise ValueError(f"Expected ChatCompletionChunk, got {type(next__)}")
+            self._seen.append(next__)
+            return next__
+        except StopIteration:
+            self._terminated = True
+            raise
+
+    def __iter__(self) -> TypedStream:
+        return self
+
+    def __enter__(self) -> TypedStream:
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.stream.__exit__(*args, **kwargs)
+
+    def messages(self, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR, allow_partial_iteration=False) -> List[ChatCompletionMessageParam]:
+        return self.completion(allow_partial_iteration).messages(tool_error_handling)
+
+    def completion(self, allow_partial_iteration=False) -> TypedChatCompletion[T]:
+        if not allow_partial_iteration and not self._terminated:
+            raise ValueError("Stream has not been fully iterated")
+        if not self._seen:
+            raise ValueError("No completions have been seen")
+        choice_acc = [dict(content_acc=[], tool_calls=[], finish_reasons="stop") for _ in self._seen[0].choices]
+        for chunk in self._seen:
+            for i in range(len(chunk.choices)):
+                delta = chunk.choices[i].delta
+                acc = choice_acc[i]
+                if delta.content:
+                    acc["content_acc"].append(delta.content)
+                if delta.tool_calls:
+                    acc["tool_calls"].extend(delta.tool_calls)
+                if delta.finish_reason:
+                    acc["finish_reasons"] = delta.finish_reason
+        choices = []
+        for i in range(len(choice_acc)):
+            acc = choice_acc[i]
+            content = "".join(acc["content_acc"]) or None
+            message = ChatCompletionMessage.model_validate(
+                dict(content=content, role="assistant", tool_calls=acc["tool_calls"] or None)
+            )
+            choices.append(Choice.model_validate(
+                dict(finish_reason=acc["finish_reasons"], index=i, message=message)
+            ))
+
+        dumped_chunk = self._seen[-1].model_dump(exclude={"choices"})
+        dumped_chunk["choices"] = choices
+        dumped_chunk["object"] = "chat.completion"
+
+        completion = ChatCompletion(**dumped_chunk)
+        dumped = completion.model_dump(exclude={"choices"})
+
+        error = None
+        dumped["choices"] = []
+        for choice in choices:
+            try:
+                dumped["choices"].append(type_choice(choice, self._response_format, self._deserializer, self._functions))
+            except ChoiceParsingError as e:
+                error = e
+                dumped["choices"].append(e)
+        if error:
+            raise CompletionParsingError(completion, dumped["choices"]) from error
+        return TypedChatCompletion[self._response_format].model_validate(**dumped)
 
 
-class TypedChoiceChunk(ChoiceChunk):
-    delta: TypedDeltaChoice
-
-    def tool_messages(self) -> List[ChatCompletionToolMessageParam]:
-        return [tc.build_completion_param() for tc in self.message.tool_calls]
-
-
-class TypedDeltaChoice(ChoiceDelta):
-    tool_calls: TypedChoiceDeltaToolCall
-
-
-class TypedChoiceDeltaToolCall(ChoiceDeltaToolCall):
-    _fn: Callable
-
-    def __call__(self):
-        return self._fn()
-
-    def build_completion_param(self, result: Any = None) -> ChatCompletionToolMessageParam:
-        result = result or self()
-        return ChatCompletionToolMessageParam(content=str(result), role="tool", tool_call_id=self.id)
+def type_choice(choice: Choice, response_format: Type[T], deserializer: Callable[[str], T], functions: dict[str, Tuple[Callable, Type[BaseModel], Any]]) -> TypedChoice[T]:
+    try:
+        dumped = choice.model_dump()
+        if choice.message.content is not None:
+            dumped["message"]["raw_content"] = choice.message.content
+            dumped["message"]["content"] = deserializer(choice.message.content)
+        dumped["message"]['tool_calls'] = dumped["message"]['tool_calls'] or []
+        typed_choice = TypedChoice[response_format].model_validate(dumped)
+        for tc in typed_choice.message.tool_calls:
+            fn, validator, _ = functions[tc.function.name]
+            tc._fn = partial(execute_tool_call, tc.function.arguments, function=fn, validator=validator)
+        return typed_choice
+    except Exception as e:
+        raise ChoiceParsingError(choice, e) from e
