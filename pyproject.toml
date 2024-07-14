@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.9"
 openai = "^1.35.13"
 pydantic = "^2.8.2"
-pytest = "^8.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
