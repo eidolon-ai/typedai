@@ -1,3 +1,4 @@
+import pytest
 from openai import BaseModel
 from pytest_asyncio import fixture
 from typedai import TypedAI
@@ -13,6 +14,7 @@ def test_instantiation(typed_ai):
     assert typed_ai
 
 
+@pytest.mark.vcr
 def test_string_completions(typed_ai):
     completion = typed_ai.completions.stream(
         model="gpt-3.5-turbo",
@@ -27,6 +29,7 @@ class MyResponseObject(BaseModel):
     bullshit_level: float = .5
 
 
+@pytest.mark.vcr
 def test_typed_completions(typed_ai):
     completion = typed_ai.completions.stream(
         model="gpt-3.5-turbo",
@@ -43,6 +46,7 @@ def add(a: int, b: int) -> int:
     return a + b
 
 
+@pytest.mark.vcr
 def test_typed_tools(typed_ai):
     completion = typed_ai.completions.stream(
         model="gpt-3.5-turbo",
@@ -64,6 +68,7 @@ def subtract(a: int, b: int) -> int:
     return a - b
 
 
+@pytest.mark.vcr
 def test_continuing_tool_call(typed_ai):
     messages = [System(
         content="You are a helpful assistant. You are very bad at math so you use tools to perform math for you."
@@ -80,6 +85,7 @@ def test_continuing_tool_call(typed_ai):
     assert "4" in completion2.choices[0].message.content
 
 
+@pytest.mark.vcr
 def test_int_response(typed_ai):
     completion = typed_ai.completions.stream(
         model="gpt-4-turbo",
@@ -89,6 +95,7 @@ def test_int_response(typed_ai):
     assert completion.choices[0].message.content == 4
 
 
+@pytest.mark.vcr
 def test_int_response_can_be_continued(typed_ai):
     messages = [System(content="You are a helpful assistant."), User(content="What is 2 + 2?")]
     completion = typed_ai.completions.stream(
