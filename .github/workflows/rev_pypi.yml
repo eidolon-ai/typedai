@@ -1,12 +1,6 @@
 name: Rev and Publish Python Projects
 
 on:
-  workflow_run:
-    workflows: ["Test Python"]  # The name of the test workflow
-    types:
-      - completed
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
@@ -15,7 +9,6 @@ concurrency:
 
 jobs:
   rev:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
