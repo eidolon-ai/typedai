@@ -37,7 +37,7 @@ print(typed_completion.parse_content().meaning_of_life)  # 42
 ## IDE Type Hinting
 Sure you can code without them. You can live on rice and beans too, but you sure don't want to.
 
-![Alt text](resources/type_hints.png)
+![Alt text](https://raw.githubusercontent.com/eidolon-ai/typedai/main/resources/type_hints.png)
 
 ## Define tool calls with function signatures 
 
