@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
           cache: 'poetry'
       - run: poetry lock --no-update
-      - name: Checking if lock files are out of date, (run "make lock" to fix)
+      - name: Checking if lock files are out of date, (run "poetry lock" to fix)
         run: |
           git status
           git diff --quiet
@@ -27,6 +27,26 @@ jobs:
         if: always()
         with:
           commit_message: "updating lock"
+
+  ruff:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - run: poetry run ruff format
+      - name: Checking if lock files are out of date, (run "poetry run ruff format" to fix)
+        run: |
+          git status
+          git diff --quiet
+      - name: Checking if lock files are out of date, (run "poetry run ruff check --fix" to fix)
+        run: poetry run ruff check
 
   pytest:
     runs-on: ubuntu-latest
