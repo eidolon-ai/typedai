@@ -40,6 +40,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'poetry'
+      - run: poetry install
       - run: poetry run ruff format
       - name: Checking if lock files are out of date, (run "poetry run ruff format" to fix)
         run: |
