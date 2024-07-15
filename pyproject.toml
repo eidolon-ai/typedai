@@ -14,7 +14,7 @@ Website = "https://www.eidolonai.com/"
 Discord = "https://discord.gg/8ZQ6z6Z"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 openai = "^1.35.13"
 pydantic = "^2.8.2"
 
