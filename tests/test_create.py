@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import pytest
+import yaml
 from openai import BaseModel
 from pytest_asyncio import fixture
 from typedai import TypedAI
@@ -83,6 +86,25 @@ def test_continuing_tool_call(typed_ai):
     messages.extend(completion.build_messages())
     completion2 = typed_ai.completions.create(messages=messages, model="gpt-3.5-turbo")
     assert "4" in completion2.parse_content()
+
+
+@pytest.mark.vcr
+def test_create_to_completion(typed_ai):
+    completion = typed_ai.completions.create_to_completion(
+        model="gpt-4-turbo",
+        messages=[
+            System(content="You are a helpful assistant. You are very bad at math so you use tools to perform math for you."),
+            User(content="What is 2 + 2?")
+        ],
+        fn_tools=[add, subtract],
+        response_type=int,
+    )
+    assert completion.parse_content() == 4
+    cassette_loc = Path(__file__).parent / "cassettes/test_create/test_create_to_completion.yaml"
+    with open(cassette_loc, "r") as f:
+        cassette = yaml.safe_load(f)
+    assert len(cassette["interactions"]) > 1
+
 
 
 @pytest.mark.vcr

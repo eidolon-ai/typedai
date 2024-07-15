@@ -1,19 +1,23 @@
+from typing import Optional
+
 from openai import OpenAI
 
 from .completions import TypedCompletions
 
 
 class TypedAI:
-    _client: OpenAI
+    client: OpenAI
+    default_model: Optional[str]
 
-    def __init__(self, client: OpenAI = None):
+    def __init__(self, client: OpenAI = None, default_mode: Optional[str] = None):
         if client is None:
             client = OpenAI()
-        self._client = client
+        self.client = client
+        self.default_model = default_mode
 
     @property
-    def completions(self) -> TypedCompletions:
-        return TypedCompletions(self._client.chat.completions)
+    def completions(self, default_model: Optional[str] = None) -> TypedCompletions:
+        return TypedCompletions(self.client.chat.completions, default_model or self.default_model)
 
 
 # class AsyncTypedAI:

@@ -38,7 +38,7 @@ def optional_parser(v: Optional[str], parser: Callable[[str], T]) -> Optional[T]
     return parser(v) if v is not None else None
 
 
-def required_parser(v: Optional[str], parser: Callable[[str], T]) -> T:
+def require_parser(v: Optional[str], parser: Callable[[str], T]) -> T:
     if v is None:
         raise ValueError("Expected a value, got None")
     return parser(v)

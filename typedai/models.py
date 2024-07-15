@@ -12,7 +12,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call import Function
-from typedai.errors import ToolArgumentParsingError, ChoiceParsingError
+from typedai.errors import ToolArgumentParsingError, ContentParsingError
 
 T = TypeVar('T')
 
@@ -31,7 +31,7 @@ class TypedChatCompletion(ChatCompletion, Generic[T]):
         try:
             return self._parser(choice_.message.content)
         except Exception as e:
-            raise ChoiceParsingError(choice_, e) from e
+            raise ContentParsingError(choice_, e) from e
 
     def build_messages(self, choice: int = 0, tool_error_handling: ToolErrorHandling = HANDLE_PARSE_ERROR) -> List[ChatCompletionMessageParam]:
         return [self.choices[choice].message.model_dump(), *self.build_tool_completions(choice, tool_error_handling)]

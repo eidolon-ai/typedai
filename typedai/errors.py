@@ -3,7 +3,7 @@ from openai.types.chat.chat_completion import Choice
 from typedai.messages import User
 
 
-class ChoiceParsingError(Exception):
+class ContentParsingError(Exception):
     choice: Choice
     error: Exception
 
@@ -22,3 +22,7 @@ class ToolArgumentParsingError(Exception):
     def __init__(self, error: Exception):
         self.error = error
         super().__init__(f"Error occurred while validating tool call arguments: {error}")
+
+
+class CycleLimitExceeded(Exception):
+    pass
