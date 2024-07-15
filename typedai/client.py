@@ -17,7 +17,9 @@ class TypedAI:
 
     @property
     def completions(self, default_model: Optional[str] = None) -> TypedCompletions:
-        return TypedCompletions(self.client.chat.completions, default_model or self.default_model)
+        return TypedCompletions(
+            self.client.chat.completions, default_model or self.default_model
+        )
 
 
 # class AsyncTypedAI:

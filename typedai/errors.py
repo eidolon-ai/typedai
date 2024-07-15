@@ -22,7 +22,9 @@ class ToolArgumentParsingError(Exception):
 
     def __init__(self, error: Exception):
         self.error = error
-        super().__init__(f"Error occurred while validating tool call arguments: {error}")
+        super().__init__(
+            f"Error occurred while validating tool call arguments: {error}"
+        )
 
 
 class CycleLimitExceeded(Exception):

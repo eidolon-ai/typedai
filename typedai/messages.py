@@ -1,4 +1,7 @@
-from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
+from openai.types.chat import (
+    ChatCompletionSystemMessageParam,
+    ChatCompletionUserMessageParam,
+)
 
 
 def System(content: str, name: str = None) -> ChatCompletionSystemMessageParam:
