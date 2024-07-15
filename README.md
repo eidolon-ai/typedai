@@ -1,6 +1,6 @@
 # TypedAI
 
-```pip install typedai```
+```pip install eidolon-typedai```
 
 TypedAi is a Python library that simplifies the OpenAI chat completions api using type hints.
 
