@@ -42,6 +42,4 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'poetry'
       - run: poetry install
-        working-directory: sdk
       - run: poetry run pytest
-        working-directory: sdk
