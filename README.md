@@ -4,6 +4,8 @@
 
 TypedAi is a Python library that simplifies the OpenAI chat completions api using type hints.
 
+Think Typer / FastApi for LLM interactions.
+
 The library has no dependencies other than openai and pydantic.
 
 ```pip install eidolon-typedai```
