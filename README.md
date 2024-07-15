@@ -1,10 +1,12 @@
 # TypedAI
-
-```pip install eidolon-typedai```
+[![PyPI - Version](https://img.shields.io/pypi/v/eidolon-typedai)](https://pypi.org/project/eidolon-typedai/)
+[![Tests - Status](https://img.shields.io/github/actions/workflow/status/eidolon-ai/typedai/test_python.yml?logo=github&label=Test%20Python)](https://github.com/eidolon-ai/typedai/actions/workflows/test_python.yml)
 
 TypedAi is a Python library that simplifies the OpenAI chat completions api using type hints.
 
 The library has no dependencies other than openai and pydantic.
+
+```pip install eidolon-typedai```
 
 ## Easily Define Output Format
 Defining json schema by hand error-prone. With TypedAI, you can define the output format with python types that are 
