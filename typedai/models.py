@@ -46,13 +46,15 @@ class TypedChatCompletion(ChatCompletion, Generic[T]):
                 result = self.execute_tool_call(tc)
                 acc.append(ChatCompletionToolMessageParam(content=str(result), role="tool", tool_call_id=tc.id))
             except ToolArgumentParsingError as e:
-                if tool_error_handling == HANDLE_ANY_ERROR:
-                    acc.append(ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=tc.id))
+                if tool_error_handling in {HANDLE_ANY_ERROR, HANDLE_PARSE_ERROR}:
+                    content = f"Error parsing arguments\n{type(e.error).__name__}: {e.error}"
+                    acc.append(ChatCompletionToolMessageParam(content=content, role="tool", tool_call_id=tc.id))
                 else:
                     raise e
             except Exception as e:
                 if tool_error_handling == HANDLE_ANY_ERROR:
-                    acc.append(ChatCompletionToolMessageParam(content=str(e), role="tool", tool_call_id=tc.id))
+                    content = f"Error during tool execution\n{type(e).__name__}: {e}"
+                    acc.append(ChatCompletionToolMessageParam(content=content, role="tool", tool_call_id=tc.id))
                 else:
                     raise e
         return acc

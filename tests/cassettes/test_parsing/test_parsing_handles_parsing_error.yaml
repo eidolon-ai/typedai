@@ -1,0 +1,103 @@
+interactions:
+- request:
+    body: '{"messages": [{"content": "You are a helpful assistant. You are very bad
+      at math so you use tools to perform math for you.", "role": "system"}, {"content":
+      "What is 2 + 2?", "role": "user"}], "model": "gpt-3.5-turbo", "stream": false,
+      "tools": [{"type": "function", "function": {"name": "add", "description": null,
+      "parameters": {"properties": {"a": {"title": "A", "type": "integer"}, "b": {"title":
+      "B", "type": "integer"}}, "required": ["a", "b"], "title": "Addmodel", "type":
+      "object"}}}]}'
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '492'
+      content-type:
+      - application/json
+      host:
+      - api.openai.com
+      user-agent:
+      - OpenAI/Python 1.35.13
+      x-stainless-arch:
+      - x64
+      x-stainless-async:
+      - 'false'
+      x-stainless-lang:
+      - python
+      x-stainless-os:
+      - MacOS
+      x-stainless-package-version:
+      - 1.35.13
+      x-stainless-runtime:
+      - CPython
+      x-stainless-runtime-version:
+      - 3.12.4
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAwAAAP//bFLLTsMwELznK6w9tygptKU5AkIIJAQHkIBWkeO4bqhf2BtBW/XfkZM2
+        CRU5OKsdz+xkNruIECgLSAmwFUWmrBzO5MW1xqfvm/O7tRBX169X9/IBt+wBv8YCBoFh8k/O8Mg6
+        Y0ZZybE0uoGZ4xR5UE2moySOLybxrAaUKbgMNGFxeH42HmLlcjOMk9H4wFyZknEPKfmICCFkV5/B
+        oy74D6QkHhw7intPBYe0vUQIOCNDB6j3pUeqEQYdyIxGroNtXUnZA9AYmTEqZTe4eXa9uguKSpmJ
+        kX65cc8rhnI9ecz5WFj19r697c1rpDe2NrSsNGsD6uFtPz0ZRghoqpqPKYoTGiFAnagU1xgsw24O
+        dA7paDCHPLz38Of6PvqvXhyqfRupNMI6k/uThGBZ6tKvMsepr532A4uOoot6gdWfnYB1RlnM0Ky5
+        DrKXSSMK3S/Tgcn0AKJBKrv+7DI6uAS/8chVtiy14M66st1mtI9+AQAA//8DAEwvChPMAgAA
+    headers:
+      CF-Cache-Status:
+      - DYNAMIC
+      CF-RAY:
+      - 8a35c1ba9d84c53d-SEA
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Date:
+      - Mon, 15 Jul 2024 00:50:10 GMT
+      Server:
+      - cloudflare
+      Set-Cookie:
+      - __cf_bm=uaUAow.XpZaBYfGv90Scu4ZSAEgw8Q.RI4zDqx4I.Q8-1721004610-1.0.1.1-kgz05EiNW07Fay3AhYBFoeDg2seRxDiwfv4CSlEcsiKK0nkafaRcuuWwmDTkEBhYtbamoI0Y9QMUp1ZggA3RwA;
+        path=/; expires=Mon, 15-Jul-24 01:20:10 GMT; domain=.api.openai.com; HttpOnly;
+        Secure; SameSite=None
+      - _cfuvid=FEXmvlW23s8.9K6pCwhI3uKn4gqquWo3ZEK.gZQSIZo-1721004610268-0.0.1.1-604800000;
+        path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      alt-svc:
+      - h3=":443"; ma=86400
+      openai-organization:
+      - august-data
+      openai-processing-ms:
+      - '315'
+      openai-version:
+      - '2020-10-01'
+      strict-transport-security:
+      - max-age=15552000; includeSubDomains; preload
+      x-ratelimit-limit-requests:
+      - '10000'
+      x-ratelimit-limit-tokens:
+      - '15000000'
+      x-ratelimit-remaining-requests:
+      - '9999'
+      x-ratelimit-remaining-tokens:
+      - '14999953'
+      x-ratelimit-reset-requests:
+      - 6ms
+      x-ratelimit-reset-tokens:
+      - 0s
+      x-request-id:
+      - req_3ab8aae7e1ba52c24fb3460409cffd27
+    status:
+      code: 200
+      message: OK
+version: 1
