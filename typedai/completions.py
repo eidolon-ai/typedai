@@ -87,7 +87,7 @@ class TypedCompletions:
         self,
         messages: Iterable[ChatCompletionMessageParam],
         model: Optional[Union[str, ChatModel]] = None,
-        fn_tools: Iterable[Callable] | Callable = None,
+        fn_tools: Union[Iterable[Callable], Callable] = None,
         response_type: Type[T] = str,
         **kwargs,
     ) -> TypedStream[Optional[T]]:
