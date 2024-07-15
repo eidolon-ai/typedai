@@ -34,20 +34,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install poetry
-        run: pipx install poetry
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'poetry'
-      - run: poetry install
-      - run: poetry run ruff format
-      - name: Checking if lock files are out of date, (run "poetry run ruff format" to fix)
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff format
+        run: ruff format .
+      - name: Check for changes
         run: |
           git status
-          git diff --quiet
-      - name: Checking if lock files are out of date, (run "poetry run ruff check --fix" to fix)
-        run: poetry run ruff check
+          git diff --quiet || (echo "Changes detected after formatting. Please run 'ruff format' locally and commit the changes." && exit 1)
+      - name: Run ruff check
+        run: ruff check .
 
   pytest:
     runs-on: ubuntu-latest
