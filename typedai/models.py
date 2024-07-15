@@ -9,7 +9,7 @@ from openai.types.chat import (ChatCompletion,
                                ChatCompletionMessage,
                                ChatCompletionMessageToolCall,
                                ChatCompletionToolMessageParam,
-                               ChatCompletionAssistantMessageParam, ChatCompletionMessageParam, ChatCompletionChunk)
+                               ChatCompletionMessageParam, ChatCompletionChunk)
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message_tool_call import Function
 from typedai.errors import ToolArgumentParsingError, ContentParsingError

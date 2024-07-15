@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "typedai"
 version = "0.1.0"
-description = ""
+description = "Simplify the OpenAI chat completions api using type hints."
 authors = ["Luke Lalor <lukehlalor@gmail.com>"]
 readme = "README.md"
 
