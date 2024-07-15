@@ -1,17 +1,6 @@
 import pytest
 from openai import BaseModel
-from pytest_asyncio import fixture
-from typedai import TypedAI
 from typedai.messages import System, User
-
-
-@fixture()
-def typed_ai():
-    return TypedAI()
-
-
-def test_instantiation(typed_ai):
-    assert typed_ai
 
 
 @pytest.mark.vcr

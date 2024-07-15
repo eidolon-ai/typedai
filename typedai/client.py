@@ -9,11 +9,11 @@ class TypedAI:
     client: OpenAI
     default_model: Optional[str]
 
-    def __init__(self, client: OpenAI = None, default_mode: Optional[str] = None):
+    def __init__(self, client: OpenAI = None, default_model: Optional[str] = None):
         if client is None:
             client = OpenAI()
         self.client = client
-        self.default_model = default_mode
+        self.default_model = default_model
 
     @property
     def completions(self, default_model: Optional[str] = None) -> TypedCompletions:

@@ -10,7 +10,6 @@ def snake_to_capital_case(snake_str):
 
 
 def callable_params_as_base_model(func: Callable) -> Type[BaseModel]:
-    # todo, add typedai type wrapper that will flatten a single type hint into its base json schema
     type_hints = get_type_hints(func)
     params = {param: (typ, ...) for param, typ in type_hints.items() if param != "return"}
     return create_model(snake_to_capital_case(func.__name__ + "Model"), **params)
