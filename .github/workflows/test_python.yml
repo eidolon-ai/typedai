@@ -1,0 +1,47 @@
+name: Test Python
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  lock-files-up-to-date:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'poetry'
+      - run: poetry lock --no-update
+      - name: Checking if lock files are out of date, (run "make lock" to fix)
+        run: |
+          git status
+          git diff --quiet
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        if: always()
+        with:
+          commit_message: "updating lock"
+
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry ${{ matrix.python-version }}
+        run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'poetry'
+      - run: poetry install
+        working-directory: sdk
+      - run: poetry run pytest
+        working-directory: sdk

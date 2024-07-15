@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eidolon-typedai"
-version = "0.1.1"
+version = "0.1.2"
 description = "Simplify the OpenAI chat completions api using type hints."
 authors = ["Luke Lalor <lukehlalor@gmail.com>"]
 readme = "README.md"
@@ -8,9 +8,10 @@ readme = "README.md"
 packages = [
     { include = "typedai" },
 ]
-include = [
-    "resources/**/*"
-]
+[tool.poetry.urls]
+Github = "https://github.com/eidolon-ai/typedai"
+Website = "https://www.eidolonai.com/"
+Discord = "https://discord.gg/8ZQ6z6Z"
 
 [tool.poetry.dependencies]
 python = "^3.9"
