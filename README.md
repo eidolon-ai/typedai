@@ -115,4 +115,7 @@ The objects used are either the raw openai objects or a minimally altered TypedA
 functionality. Even dumping the models will give you unchanged results.
 
 Similarly, no parsing or validation is done 
-without explicit method calls, so the additional functionality will never slow you down.  
+without explicit method calls, so the additional functionality will never slow you down.
+
+## Contact Us
+Have a question or running into a problem? Reach out to us on [discord](https://discord.com/invite/6kVQrHpeqG) and let us know how we can help.
